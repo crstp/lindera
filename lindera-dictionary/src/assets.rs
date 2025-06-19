@@ -140,8 +140,19 @@ async fn download_with_retry(
                     // continue to next url
                 }
                 Err(e) => {
-                    warn!("Request error from {}: {}", url, e);
-                    println!("Request error from {}: {}", url, e);
+                    use std::error::Error;
+                    warn!("Request error from {}: {:?}", url, e);
+                    println!("Request error from {}: {:?}", url, e);
+
+                    // eの詳細な情報を表示（もしsourceがあれば再帰的に表示）
+                    let mut source = e.source();
+                    let mut level = 1;
+                    while let Some(err) = source {
+                        warn!("Caused by ({}): {}", level, err);
+                        println!("Caused by ({}): {}", level, err);
+                        source = err.source();
+                        level += 1;
+                    }
                     // continue to next url
                 }
             }
