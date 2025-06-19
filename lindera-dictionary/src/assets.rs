@@ -75,6 +75,7 @@ async fn download_with_retry(
     expected_md5: &str,
 ) -> Result<Vec<u8>, Box<dyn Error>> {
     if download_urls.is_empty() {
+        println!("No download URLs provided");
         return Err("No download URLs provided".into());
     }
 
@@ -90,12 +91,20 @@ async fn download_with_retry(
             max_rounds,
             urls.len()
         );
+        println!(
+            "Round {}/{}: Trying {} URLs",
+            round + 1,
+            max_rounds,
+            urls.len()
+        );
 
         for url in urls {
             debug!("Attempting to download from {}", url);
+            println!("Attempting to download from {}", url);
             match client.get(url).send().await {
                 Ok(resp) if resp.status().is_success() => {
                     debug!("HTTP download successful from {}", url);
+                    println!("HTTP download successful from {}", url);
 
                     let content = resp.bytes().await?;
 
@@ -106,12 +115,19 @@ async fn download_with_retry(
 
                     debug!("Expected MD5: {}", expected_md5);
                     debug!("Actual   MD5: {}", actual_md5);
+                    println!("Expected MD5: {}", expected_md5);
+                    println!("Actual   MD5: {}", actual_md5);
 
                     if actual_md5 == expected_md5 {
                         debug!("MD5 check passed from {}", url);
+                        println!("MD5 check passed from {}", url);
                         return Ok(content.to_vec());
                     } else {
                         warn!(
+                            "MD5 mismatch from {}! Expected {}, got {}",
+                            url, expected_md5, actual_md5
+                        );
+                        println!(
                             "MD5 mismatch from {}! Expected {}, got {}",
                             url, expected_md5, actual_md5
                         );
@@ -120,10 +136,12 @@ async fn download_with_retry(
                 }
                 Ok(resp) => {
                     warn!("HTTP download failed from {}: HTTP {}", url, resp.status());
+                    println!("HTTP download failed from {}: HTTP {}", url, resp.status());
                     // continue to next url
                 }
                 Err(e) => {
                     warn!("Request error from {}: {}", url, e);
+                    println!("Request error from {}: {}", url, e);
                     // continue to next url
                 }
             }
@@ -133,6 +151,7 @@ async fn download_with_retry(
     }
 
     error!("All {} attempts failed", max_rounds);
+    println!("All {} attempts failed", max_rounds);
     Err("Failed to download a valid file from all sources".into())
 }
 
